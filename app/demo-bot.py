@@ -12,8 +12,6 @@ load_dotenv("config/.env")
 # アクセストークンを設定
 TOKEN = os.environ.get("DISCORD_ACCESS_TOKEN")  # 自分のアクセストークンと置換してください
 
-print(TOKEN)
-
 # Botの大元となるオブジェクトを生成する
 bot = discord.Bot(
         intents=discord.Intents.all(),  # 全てのインテンツを利用できるようにする
