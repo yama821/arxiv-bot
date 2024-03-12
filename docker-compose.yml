@@ -8,3 +8,4 @@ services:
     tty: true
     volumes:
       - ./app:/root/app
+    command: sh -c "cd app && python demo-bot.py"
