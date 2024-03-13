@@ -39,6 +39,11 @@ async def on_message(message: discord.Message):
         await message.reply("Hello!")
 
 
+# pingコマンドを実装
+@bot.command(name="ping", description="pingを返します")
+async def ping(ctx: discord.ApplicationContext):
+    await ctx.respond("pong")
+
+
 # Botを起動
 bot.run(TOKEN)
-
