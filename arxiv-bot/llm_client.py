@@ -28,7 +28,8 @@ class LLMClient:
         ret = self.chat_completion(prompt)
         return ret
     
-    def generate_with_system_prompt(self, prompt_path, input_text):
+    def generate_with_system_prompt(self, prompt_type, input_text):
+        prompt_path = Path(__file__).resolve().parent / f"prompts/{prompt_type}.txt"
         with open(prompt_path) as f:
             system_prompt = f.read()
 
