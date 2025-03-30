@@ -1,21 +1,13 @@
 from llm_client import LLMClient
-from pathlib import Path
+from ocr import MistralOCR
 
-client = LLMClient()
+if __name__ == "__main__":
+    paper_url = "https://arxiv.org/pdf/2503.21077"
 
-prompt_path = Path(__file__).resolve().parent / "prompt.txt"
-with open(prompt_path) as f:
-    system_prompt = f.read()
+    ocr_client = MistralOCR()
+    paper_text = ocr_client.render_md(paper_url)
 
-file_name = input()
-paper_path = Path(__file__).resolve().parent.parent / f"data/{file_name}"
-with open(paper_path, encoding='utf-8', errors='replace') as f:
-    paper = f.read()
+    llm_client = LLMClient()
+    summary = llm_client.summarize_math_paper(paper_text)
 
-prompt = [
-    {"role": "system", "content": system_prompt},
-    {"role": "user", "content": paper},
-]
-
-ret = client.chat_completion(prompt)
-print(ret)
+    print(summary)

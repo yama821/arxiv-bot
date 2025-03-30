@@ -25,7 +25,7 @@ class LLMClient:
             {"role": "user", "content": paper_text},
         ]
 
-        ret = self.chat_completion(prompt)
+        ret = self.chat_completion(prompt, temperature=0.0)
         return ret
 
 if __name__ == "__main__":
