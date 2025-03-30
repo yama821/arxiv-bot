@@ -7,7 +7,7 @@ class LLMClient:
         # openai.api_key = os.environ["OPENAI_API_KEY"]
         self.client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-    def chat_completion(self, messages, model='gpt-4o-mini', temperature=0.7):
+    def chat_completion(self, messages, model='gpt-4o-mini', temperature=0.0):
         response = self.client.responses.create(
             model=model,
             input=messages,
@@ -16,7 +16,7 @@ class LLMClient:
         return response.output_text
     
     def summarize_math_paper(self, paper_text):
-        prompt_path = Path(__file__).resolve().parent / "prompt.txt"
+        prompt_path = Path(__file__).resolve().parent / "prompts/summarize_math_paper.txt"
         with open(prompt_path) as f:
             system_prompt = f.read()
         
@@ -25,7 +25,19 @@ class LLMClient:
             {"role": "user", "content": paper_text},
         ]
 
-        ret = self.chat_completion(prompt, temperature=0.0)
+        ret = self.chat_completion(prompt)
+        return ret
+    
+    def generate_with_system_prompt(self, prompt_path, input_text):
+        with open(prompt_path) as f:
+            system_prompt = f.read()
+
+        prompt = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": input_text},
+        ]
+
+        ret = self.chat_completion(prompt)
         return ret
 
 if __name__ == "__main__":
