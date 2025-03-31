@@ -1,26 +1,32 @@
 from llm_client import LLMClient
 from ocr import MistralOCR
 from search import ArxivClient
+from send_message import DiscordWebhookSender, Color
+from datetime import datetime
 
 if __name__ == "__main__":
 
-    query = "combinatorics"
+    query = "cat:math.CO"
     arxiv_client = ArxivClient()
-    search_results = arxiv_client.search(query)
-    top_result = search_results[0]
+    search_results = arxiv_client.sync_search(query, max_results=10)
 
-    abst = top_result.summary
+    
+    for i, result in enumerate(search_results):
 
-    llm_client = LLMClient()
-    summary = llm_client.generate_with_system_prompt('translate_abstruct', abst)
-    print(summary)
+        llm_client = LLMClient()
+        # summary = llm_client.generate_with_system_prompt('translate_abstruct', result.summary)
 
+        webhook = DiscordWebhookSender()
 
-    # paper_url = "https://arxiv.org/pdf/2503.21077"
-    # ocr_client = MistralOCR()
-    # paper_text = ocr_client.render_md(paper_url)
-
-    # llm_client = LLMClient()
-    # summary = llm_client.summarize_math_paper(paper_text)
-
-    # print(summary)
+        authors = ", ".join([author.name for author in result.authors])
+        webhook.send_embed(
+            author=f"論文紹介 {datetime.today().date()} ({i+1}/{len(search_results)})",
+            title=f"__{result.title}__",
+            description=f"""
+* 著者: {authors}
+* リンク: {result.entry_id}
+* 投稿日: {result.published.date()}
+### アブストラクト:\n{result.summary}
+""",
+            color=Color.BLUE,
+        )

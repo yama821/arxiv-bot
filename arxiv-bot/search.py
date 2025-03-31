@@ -10,10 +10,10 @@ class ArxivClient:
     def __init__(self):
         self.client = arxiv.Client()
     
-    def sync_search(self, query) -> list[arxiv.Result]:
+    def sync_search(self, query, max_results=5) -> list[arxiv.Result]:
         search_state = arxiv.Search(
             query=query,
-            max_results=5,
+            max_results=max_results,
             sort_by=arxiv.SortCriterion.SubmittedDate,
         )
         results = list(self.client.results(search_state))

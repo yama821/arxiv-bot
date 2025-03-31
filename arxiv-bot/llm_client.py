@@ -8,17 +8,20 @@ class LLMClient:
         # openai.api_key = os.environ["OPENAI_API_KEY"]
         self.client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-    async def chat_completion(self, messages, model='gpt-4o-mini', temperature=0.0):
-        response = await asyncio.to_thread(
-            lambda: self.client.responses.create(
-                model=model,
-                input=messages,
-                temperature=temperature,
-            )
+    def chat_completion(self, messages, model='gpt-4o-mini', temperature=0.0):
+        return self.client.responses.create(
+            model=model,
+            input=messages,
+            temperature=temperature,
+        ).output[0].content[0].text
+
+    async def chat_completion_async(self, messages, model='gpt-4o-mini', temperature=0.0):
+        return await asyncio.to_thread(
+            lambda: self.chat_completion(messages, model, temperature)
         )
-        return response.output_text
     
-    def summarize_math_paper(self, paper_text):
+    
+    def summarize_math_paper(self, paper_text, to_async = False):
         prompt_path = Path(__file__).resolve().parent / "prompts/summarize_math_paper.txt"
         with open(prompt_path) as f:
             system_prompt = f.read()
@@ -28,10 +31,13 @@ class LLMClient:
             {"role": "user", "content": paper_text},
         ]
 
-        ret = self.chat_completion(prompt)
+        if to_async:
+            ret = self.chat_completion_async(prompt)
+        else:
+            ret = self.chat_completion(prompt)
         return ret
     
-    def generate_with_system_prompt(self, prompt_type, input_text):
+    def generate_with_system_prompt(self, prompt_type, input_text, to_async = False):
         prompt_path = Path(__file__).resolve().parent / f"prompts/{prompt_type}.txt"
         with open(prompt_path) as f:
             system_prompt = f.read()
@@ -41,7 +47,10 @@ class LLMClient:
             {"role": "user", "content": input_text},
         ]
 
-        ret = self.chat_completion(prompt)
+        if to_async:
+            ret = self.chat_completion_async(prompt)
+        else:
+            ret = self.chat_completion(prompt)
         return ret
 
 if __name__ == "__main__":

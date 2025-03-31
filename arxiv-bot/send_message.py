@@ -16,11 +16,14 @@ class Color(Enum):
     MAGENTA = 0xFF00FF  # マゼンタ
 
 class DiscordWebhookSender:
-    def __init__(self, webhook_url: str):
+    def __init__(self, webhook_url: str = None):
         """
         初期化。Webhook の URL を設定します。
         """
-        self.webhook_url = webhook_url
+        if webhook_url is None:
+            self.webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
+        else:
+            self.webhook_url = webhook_url
 
     def send_embed(
         self,
