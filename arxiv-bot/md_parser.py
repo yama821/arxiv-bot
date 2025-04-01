@@ -2,8 +2,7 @@ import re
 import json
 
 class MarkdownToNotionConverter:
-    def __init__(self, markdown_text=None):
-        self.markdown_text = markdown_text
+    def __init__(self):
         self.results = []          # トップレベルのブロックリスト
         self.bullet_stack = []     # (indent, block) タプルで箇条書き階層を管理
         self.paragraph_lines = []  # 段落行のバッファ
