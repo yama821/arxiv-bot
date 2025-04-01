@@ -64,7 +64,7 @@ class NotionClient:
 
 if __name__ == "__main__":
 
-    with open('parsed_data.json') as f:
+    with open('tmp.json') as f:
         json_data = json.load(f)
 
     client = NotionClient()
