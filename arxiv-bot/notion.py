@@ -34,7 +34,7 @@ class NotionClient:
         for child_data in children_data:
             self.create_child(child_data, parent_id)
 
-    def create_page(self, title, url = None):
+    def create_page(self, title, url = None, properties: dict = {}):
         page_data = {
             "parent": {"database_id": self.DATABASE_ID},
             "properties": {
@@ -49,8 +49,8 @@ class NotionClient:
                 }
             }
         }
-        if url is not None:
-            page_data["properties"]["URL"] = {"url": url}
+        for key, value in properties.items():
+            page_data["properties"][key] = value
 
         url = "https://api.notion.com/v1/pages"
         response = requests.post(url, headers=self.headers, data=json.dumps(page_data))

@@ -8,26 +8,30 @@ from md_parser import MarkdownToNotionConverter
 from tqdm import tqdm
 from dotenv import load_dotenv
 from pathlib import Path
+import arxiv_feed_parser as afp
 
 if __name__ == "__main__":
-
     load_dotenv(Path(__file__).resolve().parent / '.env')
 
-    query = "cat:math.CO"
-    arxiv_client = ArxivClient()
-    search_results = arxiv_client.sync_search(query, max_results=10)
+    cat = 'math.CO'
+
+    # query = "cat:math.CO"
+    # arxiv_client = ArxivClient()
+    # search_results = arxiv_client.sync_search(query, max_results=10)
+    retriever = afp.retrieve(cat, None)
 
     llm_client = LLMClient()
     ocr_client = MistralOCR()
     notion_client = NotionClient()
     converter = MarkdownToNotionConverter()
     
-    for i, result in tqdm(enumerate(search_results)):
-        
-        pdf_url = result.pdf_url
-        pdf_url = pdf_url[:4] + "s" + pdf_url[4:]
-        print(f"[{i+1}/{len(search_results)}]: {pdf_url}")
-        print(f"\ttitle: {result.title}")
+    paper_count = len(retriever.newsubmissions)
+    print(f"find {paper_count} new papers! (cat:{cat})")
+    for i, result in tqdm(enumerate(retriever.newsubmissions)):
+
+        pdf_url = result["pdf_url"]
+        print(f"[{i+1}/{paper_count}]: {pdf_url}")
+        print(f"\ttitle: {result['title']}")
         markdown_text = ocr_client.render_md(pdf_url)
 
         print("\tsummarizing...")
@@ -35,7 +39,23 @@ if __name__ == "__main__":
         json_data = converter.parse(markdown_text=summary)
 
         print("\tcreate page...")
-        page_id = notion_client.create_page(result.title, url=result.entry_id)
+        properties = {
+            "URL": {"type": "url", "url": result["abs_url"]},
+            "primary_category": {"type": "select", "select": {"name": result["primary_subject"]}},
+            "published": {"type": "date", "date": {"start": result["published"].date().strftime("%Y-%m-%d")}},
+        }
+        page_id = notion_client.create_page(result["title"], properties=properties)
+
+        notion_client.create_child({
+            "object": "block", 
+            "type": "heading_1", 
+            "heading_1": {
+                "rich_text": [{
+                    "type": "text", 
+                    "text": {"content": "LLM による要約結果"}
+                }],
+            }
+        }, page_id)
         notion_client.create_children(json_data['results'], page_id)
 
         # webhook = DiscordWebhookSender()

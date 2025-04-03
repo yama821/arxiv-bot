@@ -6,7 +6,7 @@
 
 import re
 import feedparser
-from datetime import datetime
+import datetime
 from dateutil.parser import parse
 
 
@@ -22,6 +22,7 @@ class retrieve:
         abstracts = []
         labels = []
         versions = []
+        published_dates = []
         for each in resp.entries:
             titles.append(each["title"])
             subject = each["tags"][0]["term"]
@@ -47,12 +48,16 @@ class retrieve:
             authors.append(re.sub("\n[ ]+", ", ", each["author"]))
             abstracts.append(each["summary"])
 
+            dt = datetime.datetime.strptime(each["published"], "%a, %d %b %Y %H:%M:%S %z")
+            dt_jst = dt.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+            published_dates.append(dt_jst)
+
         self.cat = cat
         self.feed = resp
         self.bozo = resp["bozo"]
         self.entries = resp.entries
         self.updated = resp["feed"]["published"]
-        self.updated_parsed = datetime(*resp["feed"]["published_parsed"][:6])
+        self.updated_parsed = datetime.datetime(*resp["feed"]["published_parsed"][:6])
         self.identifiers = identifiers
         self.authors = authors
         self.titles = titles
@@ -60,6 +65,7 @@ class retrieve:
         self.primary_subjects = primary_subjects
         self.abstracts = abstracts
         self.versions = versions
+        self.published_dates = published_dates
 
         # total number of new submissions/crosslists/replacements
         self.total = len(resp.entries)
@@ -81,6 +87,7 @@ class retrieve:
             entry["abstract"] = self.abstracts[each]
             entry["label"] = self.labels[each]
             entry["version"] = self.versions[each]
+            entry["published"] = self.published_dates[each]
             # comments and subjects are not in feed 2020-07-12
             entry["comments"] = ""
             entry["subjects"] = ""
@@ -112,7 +119,7 @@ def alias_replace(subject, aliases):
 if __name__ == "__main__":
     retriever = retrieve('math.CO', None)
     print(type(retriever.entries[0]))
-    import json
-    print(json.dumps(retriever.newsubmissions[0], indent=4, ensure_ascii=False))
     for entry in retriever.newsubmissions:
         print(entry["abs_url"])
+    
+    print(retriever.newsubmissions[0]["published"])
