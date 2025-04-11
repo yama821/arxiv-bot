@@ -27,7 +27,9 @@ if __name__ == "__main__":
     
     paper_count = len(retriever.newsubmissions)
     print(f"find {paper_count} new papers! (cat:{cat})")
-    for i, result in tqdm(enumerate(retriever.newsubmissions)):
+
+    paper_info = []
+    for i, result in tqdm(enumerate(retriever.newsubmissions[:1])):
 
         pdf_url = result["pdf_url"]
         print(f"[{i+1}/{paper_count}]: {pdf_url}")
@@ -37,6 +39,13 @@ if __name__ == "__main__":
         print("\tsummarizing...")
         summary = llm_client.summarize_math_paper(markdown_text)
         json_data = converter.parse(markdown_text=summary)
+
+        short_summary = llm_client.generate_with_system_prompt(
+            prompt_type='gen_short_summary',
+            input_text=summary,
+        )
+
+        print(f"\tshort summary: {short_summary}")
 
         print("\tcreate page...")
         properties = {
@@ -58,16 +67,28 @@ if __name__ == "__main__":
         }, page_id)
         notion_client.create_children(json_data['results'], page_id)
 
-        # webhook = DiscordWebhookSender()
-#         authors = ", ".join([author.name for author in result.authors])
-#         webhook.send_embed(
-#             author=f"論文紹介 {datetime.today().date()} ({i+1}/{len(search_results)})",
-#             title=f"__{result.title}__",
-#             description=f"""
-# * 著者: {authors}
-# * リンク: {result.entry_id}
-# * 投稿日: {result.published.date()}
-# ### アブストラクト:\n{result.summary}
-# """,
-#             color=Color.BLUE,
-#         )
+        notion_url = notion_client.retrieve_page(page_id)['url']
+
+        paper_info.append({
+            "title": result["title"],
+            "abs_url": result["abs_url"],
+            "authors": result["authors"],
+            "published": result["published"],
+            "summary": short_summary,
+            "notion_url": notion_url
+        })
+
+    for i, result in enumerate(paper_info):
+        webhook = DiscordWebhookSender()
+        webhook.send_embed(
+            author=f"論文紹介 {datetime.today().date()} ({i+1}/{paper_count})",
+            title=f"__{result['title']}__",
+            description=f"""
+* 著者　 : {result['authors']}
+* リンク : {result['abs_url']}
+* 投稿日 : {result['published'].date()}
+* 概要　 : {result['summary']}
+* Notion: {result['notion_url']}
+""",
+            color=Color.BLUE,
+        )
