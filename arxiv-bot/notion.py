@@ -62,13 +62,30 @@ class NotionClient:
         else:
             print(f"ページ作成に失敗: {response.status_code}\n{response.text}")
             raise Exception("ページ作成失敗")
+
+    def retrieve_page(self, page_id):
+        url = f"https://api.notion.com/v1/pages/{page_id}"
+        response = requests.get(url, headers=self.headers)
+
+        if response.status_code == 200:
+            return response.json()
+        
+        else:
+            print(f"ページ取得に失敗: {response.status_code}\n{response.text}")
+            raise Exception("ページ取得失敗")
+
         
 
 if __name__ == "__main__":
 
-    with open('tmp.json') as f:
+    with open('../data/parsed_data.json') as f:
         json_data = json.load(f)
 
     client = NotionClient()
     page_id = client.create_page('論文要約テスト', 'https://www.twitter.com')
+    print("page_id =", page_id)
     client.create_children(json_data['results'], page_id)
+
+
+    res = client.retrieve_page(page_id)
+    print(json.dumps(res, indent=4, ensure_ascii=False))
