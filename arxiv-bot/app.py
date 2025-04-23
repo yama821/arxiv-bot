@@ -10,14 +10,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 import arxiv_feed_parser as afp
 
-if __name__ == "__main__":
-    load_dotenv(Path(__file__).resolve().parent / '.env')
 
-    cat = 'math.CO'
-
-    # query = "cat:math.CO"
-    # arxiv_client = ArxivClient()
-    # search_results = arxiv_client.sync_search(query, max_results=10)
+def execute(cat):
     retriever = afp.retrieve(cat, None)
 
     llm_client = LLMClient()
@@ -29,7 +23,7 @@ if __name__ == "__main__":
     print(f"find {paper_count} new papers! (cat:{cat})")
 
     paper_info = []
-    for i, result in tqdm(enumerate(retriever.newsubmissions[:1])):
+    for i, result in tqdm(enumerate(retriever.newsubmissions)):
 
         pdf_url = result["pdf_url"]
         print(f"[{i+1}/{paper_count}]: {pdf_url}")
@@ -74,7 +68,7 @@ if __name__ == "__main__":
             "abs_url": result["abs_url"],
             "authors": result["authors"],
             "published": result["published"],
-            "summary": short_summary,
+            "abstract": result["abstract"],
             "notion_url": notion_url
         })
 
@@ -87,8 +81,17 @@ if __name__ == "__main__":
 * 著者　 : {result['authors']}
 * リンク : {result['abs_url']}
 * 投稿日 : {result['published'].date()}
-* 概要　 : {result['summary']}
 * Notion: {result['notion_url']}
+{result['abstract']}
 """,
             color=Color.BLUE,
         )
+
+
+if __name__ == "__main__":
+    load_dotenv(Path(__file__).resolve().parent / '.env')
+
+    cats = ['math.CO', 'cs.DS']
+
+    for cat in cats:
+        execute(cat)
