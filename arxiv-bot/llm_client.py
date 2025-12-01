@@ -8,7 +8,7 @@ class LLMClient:
         # openai.api_key = os.environ["OPENAI_API_KEY"]
         self.client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-    def chat_completion(self, messages, model='gpt-4o-mini', temperature=0.0):
+    def chat_completion(self, messages, model='gpt-5-mini', temperature=0.0):
         return self.client.responses.create(
             model=model,
             input=messages,
