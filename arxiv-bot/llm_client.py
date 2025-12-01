@@ -15,7 +15,7 @@ class LLMClient:
             temperature=temperature,
         ).output[0].content[0].text
 
-    async def chat_completion_async(self, messages, model='gpt-4o-mini', temperature=0.0):
+    async def chat_completion_async(self, messages, model='gpt-5-mini', temperature=0.0):
         return await asyncio.to_thread(
             lambda: self.chat_completion(messages, model, temperature)
         )
