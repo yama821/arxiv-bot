@@ -7,17 +7,21 @@ class LLMClient:
     def __init__(self):
         # openai.api_key = os.environ["OPENAI_API_KEY"]
         self.client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+        self.used_input_tokens = 0
+        self.used_output_tokens = 0
 
-    def chat_completion(self, messages, model='gpt-5-mini', temperature=0.0):
-        return self.client.responses.create(
+    def chat_completion(self, messages, model='gpt-5-mini'):
+        response = self.client.responses.create(
             model=model,
             input=messages,
-            temperature=temperature,
-        ).output[0].content[0].text
+        )
+        self.used_input_tokens += response.usage.input_tokens
+        self.used_output_tokens += response.usage.output_tokens
+        return response.output_text
 
-    async def chat_completion_async(self, messages, model='gpt-5-mini', temperature=0.0):
+    async def chat_completion_async(self, messages, model='gpt-5-mini'):
         return await asyncio.to_thread(
-            lambda: self.chat_completion(messages, model, temperature)
+            lambda: self.chat_completion(messages, model)
         )
     
     

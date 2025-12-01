@@ -1,16 +1,23 @@
+# search.py
 import arxiv
-import discord
-from discord.ext import commands
-import os
-import asyncio
+from urllib.parse import urlparse
+from typing import List, Dict, Any, Optional
 
-from llm_client import LLMClient
 
 class ArxivClient:
-    def __init__(self):
+    """
+    arxiv ライブラリの薄いラッパ。
+    - arXiv ID から 1 件取得
+    - URL (abs / pdf) から ID を抜いて 1 件取得
+    - arxiv.Result → dict 変換
+    """
+
+    def __init__(self) -> None:
         self.client = arxiv.Client()
-    
-    def sync_search(self, query, max_results=5) -> list[arxiv.Result]:
+
+    # ---- 基本検索（クエリから複数件） ----
+
+    def search(self, query: str, max_results: int = 5) -> List[arxiv.Result]:
         search_state = arxiv.Search(
             query=query,
             max_results=max_results,
@@ -18,47 +25,90 @@ class ArxivClient:
         )
         results = list(self.client.results(search_state))
         return results
-    
-    async def search(self, query) -> list[arxiv.Result]:
-        # ブロッキングな検索処理を別スレッドで実行
-        return await asyncio.to_thread(self.sync_search, query)
 
+    # ---- arXiv ID / URL から 1 件取得 ----
 
-class ArxivCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
-        self.arxiv_client = ArxivClient()
-        self.llm_client = LLMClient()
+    def get_result_by_id(self, arxiv_id: str) -> arxiv.Result:
+        search_state = arxiv.Search(id_list=[arxiv_id])
+        results = list(self.client.results(search_state))
+        if not results:
+            raise ValueError(f"No arXiv result found for id: {arxiv_id}")
+        return results[0]
 
-    @discord.slash_command(name="search", description="search arXiv by query")
-    async def search(self, ctx: discord.ApplicationContext, query: str):
+    def parse_id_from_url(self, url: str) -> Optional[str]:
+        """
+        arXiv の abs / pdf URL から arXiv ID を取り出す。
+          https://arxiv.org/abs/2411.01234      -> 2411.01234
+          https://arxiv.org/pdf/2411.01234.pdf -> 2411.01234
+        """
+        parsed = urlparse(url)
+        if "arxiv.org" not in parsed.netloc:
+            return None
 
-        results: list[arxiv.Result] = await self.arxiv_client.search(query)
-        for i, result in enumerate(results):
-            embed = discord.Embed(
-                title=f"Search Results ({i+1}/{len(results)})",
-                description=f"[search query]: {query}",
-                color=discord.Colour.green()
-            )
+        path = parsed.path.strip("/")
+        parts = path.split("/")
+        if not parts:
+            return None
 
-            await ctx.respond(embed=embed)
+        last = parts[-1]
+        if last.lower().endswith(".pdf"):
+            last = last[:-4]
 
-            authors = ", ".join([author.name for author in result.authors])
+        return last or None
 
-            summary = await self.llm_client.generate_with_system_prompt('translate_abstruct', result.summary)
-            print(summary)
-            embed.add_field(
-                name=f"__{result.title}__",
-                value=f"Published: {result.published}\n[Link]({result.pdf_url})\nAuthors: {authors}\n\n概要:\n{summary}",
-                inline=False
-            )
-            await ctx.edit(embed=embed)
-            # break
-        
-if __name__ == "__main__":
-    intents = discord.Intents.default()
-    bot = commands.Bot(command_prefix="!")
-    bot.add_cog(ArxivCog(bot))
-    
-    discord_token = os.environ["DISCORD_TOKEN"]
-    bot.run(discord_token)
+    def get_result_from_url(self, url: str) -> arxiv.Result:
+        """
+        abs / pdf どちらを渡しても OK。
+        URL から ID を抜き出し、その ID で 1 件取得する。
+        """
+        arxiv_id = self.parse_id_from_url(url)
+        if arxiv_id is None:
+            raise ValueError(f"Not a valid arXiv URL: {url}")
+        return self.get_result_by_id(arxiv_id)
+
+    # ---- arxiv.Result → dict 変換 ----
+
+    def result_to_dict(self, result: arxiv.Result) -> Dict[str, Any]:
+        """
+        app.py のパイプラインが期待している dict 形式に変換する。
+        keys:
+          - title
+          - abs_url
+          - pdf_url
+          - primary_subject
+          - published (datetime)
+          - authors (str)
+          - abstract (str)
+        """
+        abs_url = result.entry_id
+        pdf_url = result.pdf_url
+
+        # primary_category は python-arxiv の属性をそのまま使う
+        primary_subject: str
+        if getattr(result, "primary_category", None):
+            primary_subject = str(result.primary_category)
+        elif getattr(result, "categories", None):
+            primary_subject = result.categories[0]
+        else:
+            primary_subject = "unknown"
+
+        authors = ", ".join([a.name for a in result.authors])
+        published = result.published
+        abstract = result.summary
+
+        return {
+            "title": result.title,
+            "abs_url": abs_url,
+            "pdf_url": pdf_url,
+            "primary_subject": primary_subject,
+            "published": published,
+            "authors": authors,
+            "abstract": abstract,
+        }
+
+    def get_metadata_from_url(self, url: str) -> Dict[str, Any]:
+        """
+        abs / pdf URL を渡すと、パイプラインでそのまま使える dict を返す。
+        """
+        result = self.get_result_from_url(url)
+        return self.result_to_dict(result)
