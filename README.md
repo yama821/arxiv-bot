@@ -5,5 +5,5 @@
 * 操作手順
   * pdf をダウンロード / tex ファイルをダウンロード
     * Mistral OCR でテキスト化
-  * GPT-4o で主定理の取り出し
+  * GPT-5-mini で主定理の取り出し
   * discord に送信
