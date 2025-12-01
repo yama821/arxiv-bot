@@ -4,12 +4,12 @@ import requests
 
 class NotionClient:
     def __init__(self):
-        self.NOTION_TOKEN = os.environ.get("NOTION_TOKEN")
+        self.NOTION_KEY = os.environ.get("NOTION_KEY")
         self.DATABASE_ID = os.environ.get("NOTION_DATABASE_ID")
 
         # 共通ヘッダー
         self.headers = {
-            "Authorization": f"Bearer {self.NOTION_TOKEN}",
+            "Authorization": f"Bearer {self.NOTION_KEY}",
             "Notion-Version": "2022-06-28",
             "Content-Type": "application/json"
         }
